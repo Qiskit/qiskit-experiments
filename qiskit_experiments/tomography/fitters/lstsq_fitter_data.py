@@ -16,14 +16,16 @@ Data processing for linear least square tomography fitters
 import numpy as np
 
 
-def qst_basis_matrix(meas_basis_data: np.ndarray, meas_basis: "FitterBasis") -> np.ndarray:
+def qst_basis_matrix(
+    meas_basis_data: np.ndarray, meas_matrix_basis: "TomographyMatrixBasis"
+) -> np.ndarray:
     """Return stacked vectorized basis matrix A for least squares."""
     size, msize1 = meas_basis_data.shape
-    mdim = meas_basis.dim ** (2 * msize1)
+    mdim = meas_matrix_basis.dim ** (2 * msize1)
     ret = np.zeros((size, mdim), dtype=complex)
 
     for i in range(size):
-        m_op = meas_basis(meas_basis_data[i])
+        m_op = meas_matrix_basis(meas_basis_data[i])
         ret[i] = np.ravel(m_op, order="F")
     return ret
 
@@ -31,19 +33,19 @@ def qst_basis_matrix(meas_basis_data: np.ndarray, meas_basis: "FitterBasis") -> 
 def qpt_basis_matrix(
     meas_basis_data: np.ndarray,
     prep_basis_data: np.ndarray,
-    meas_basis: "FitterBasis",
-    prep_basis: "FitterBasis",
+    meas_matrix_basis: "TomographyMatrixBasis",
+    prep_matrix_basis: "TomographyMatrixBasis",
 ) -> np.ndarray:
     """Return stacked vectorized basis matrix A for least squares."""
     size, msize1 = meas_basis_data.shape
     _, psize1 = prep_basis_data.shape
-    mdim = meas_basis.dim ** (2 * msize1)
-    pdim = prep_basis.dim ** (2 * psize1)
+    mdim = meas_matrix_basis.dim ** (2 * msize1)
+    pdim = prep_matrix_basis.dim ** (2 * psize1)
     ret = np.zeros((size, mdim * pdim), dtype=complex)
 
     for i in range(size):
-        m_op = meas_basis(meas_basis_data[i])
-        p_op = meas_basis(meas_basis_data[i])
+        m_op = meas_matrix_basis(meas_basis_data[i])
+        p_op = prep_matrix_basis(prep_basis_data[i])
         ret[i] = np.ravel(np.kron(p_op.T, m_op), order="F")
     return ret
 

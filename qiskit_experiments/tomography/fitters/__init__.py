@@ -13,5 +13,5 @@
 """Tomography fitter functions"""
 
 from .cvx_lstsq_fitter import cvx_lstsq_tomography_fit, CVXSolverChecker
-from .lstsq_fitter import lstsq_tomography_fit
+from .scipy_lstsq_fitter import scipy_lstsq_tomography_fit
 from .lstsq_fitter_data import qst_basis_matrix, qpt_basis_matrix, hedged_binomial_weights

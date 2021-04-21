@@ -20,7 +20,7 @@ from scipy.linalg import lstsq, eigh
 from qiskit_experiments.base_analysis import AnalysisResult
 
 
-def lstsq_tomography_fit(
+def scipy_lstsq_tomography_fit(
     basis_matrix: np.ndarray,
     data: np.ndarray,
     psd: bool = True,
