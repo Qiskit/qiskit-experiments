@@ -10,8 +10,7 @@
 # copyright notice, and modified files need to carry a notice indicating
 # that they have been altered from the originals.
 
-"""Tomography experiment classes."""
+"""Tomography experiment basis classes."""
 
-from .qst_experiment import QSTExperiment, QSTAnalysis
-from .qpt_experiment import QPTExperiment, QPTAnalysis
-from . import basis
+from .basis import TomographyBasis, TomographyCircuitBasis, TomographyMatrixBasis
+from .pauli_basis import PauliMeasurementBasis, PauliPreparationBasis, Pauli6PreparationBasis
