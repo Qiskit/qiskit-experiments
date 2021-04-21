@@ -20,11 +20,11 @@ from qiskit.result import marginal_counts
 from qiskit.quantum_info import Choi
 
 from qiskit_experiments.base_analysis import BaseAnalysis
-from qiskit_experiments.tomography.fitter_basis import PauliMeasBasis, Pauli4PrepBasis
-from qiskit_experiments.tomography.fitters import (
+from .basis import PauliMeasurementBasis, PauliPreparationBasis
+from .fitters import (
     qpt_basis_matrix,
     hedged_binomial_weights,
-    lstsq_tomography_fit,
+    scipy_lstsq_tomography_fit,
     cvx_lstsq_tomography_fit,
     CVXSolverChecker,
 )
@@ -50,9 +50,9 @@ class QPTAnalysis(BaseAnalysis):
         # Tomography fitter basis
         # TODO: get built in bases from metadata
         if meas_basis is None:
-            meas_basis = PauliMeasBasis()
+            meas_basis = PauliMeasurementBasis()
         if prep_basis is None:
-            prep_basis = Pauli4PrepBasis()
+            prep_basis = PauliPreparationBasis()
 
         # Choose automatic method
         if method == "auto":
@@ -70,7 +70,9 @@ class QPTAnalysis(BaseAnalysis):
         mbasis_data, pbasis_data, freq_data, shot_data = self._measurement_data(
             experiment_data.data
         )
-        basis_matrix = qpt_basis_matrix(mbasis_data, pbasis_data, meas_basis, prep_basis)
+        basis_matrix = qpt_basis_matrix(
+            mbasis_data, pbasis_data, meas_basis.matrix, prep_basis.matrix
+        )
         prob_data = freq_data / shot_data
         num_qubits = len(mbasis_data[0])
 
@@ -87,7 +89,9 @@ class QPTAnalysis(BaseAnalysis):
                 trace = 2 ** num_qubits
             else:
                 trace = None
-            result = lstsq_tomography_fit(basis_matrix, prob_data, psd=psd, trace=trace, **kwargs)
+            result = scipy_lstsq_tomography_fit(
+                basis_matrix, prob_data, psd=psd, trace=trace, **kwargs
+            )
         elif method == "cvx":
             result = cvx_lstsq_tomography_fit(
                 basis_matrix, prob_data, psd=psd, trace=trace, trace_preserving=True, **kwargs
@@ -145,5 +149,4 @@ class QPTAnalysis(BaseAnalysis):
             prep_basis_data[i] = key[1]
             freq_data[i] = val
             shot_data[i] = shot_dict[key]
-
         return meas_basis_data, prep_basis_data, freq_data, shot_data

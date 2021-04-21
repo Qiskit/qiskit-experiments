@@ -20,12 +20,13 @@ from qiskit.exceptions import QiskitError
 from qiskit.result import marginal_counts
 from qiskit.quantum_info import DensityMatrix
 from qiskit_experiments.base_analysis import BaseAnalysis
-from qiskit_experiments.tomography.fitter_basis import PauliMeasBasis
-from qiskit_experiments.tomography.fitters import (
+from .basis import PauliMeasurementBasis
+from .fitters import (
     hedged_binomial_weights,
     qst_basis_matrix,
-    lstsq_tomography_fit,
+    scipy_lstsq_tomography_fit,
     cvx_lstsq_tomography_fit,
+    lstsq_fitter_data,
     CVXSolverChecker,
 )
 
@@ -42,13 +43,13 @@ class QSTAnalysis(BaseAnalysis):
         trace: float = 1,
         binomial_weights: bool = True,
         beta: float = 0.5,
-        fitter_basis: "FitterBasis" = None,
+        meas_basis: "TomographyBasis" = None,
         **kwargs,
     ):
         # Tomography fitter basis
-        if fitter_basis is None:
+        if meas_basis is None:
             # TODO: get built in bases from metadata
-            fitter_basis = PauliMeasBasis()
+            meas_basis = PauliMeasurementBasis()
 
         # Choose automatic method
         if method == "auto":
@@ -63,7 +64,7 @@ class QSTAnalysis(BaseAnalysis):
 
         # Extract tomography measurement data
         mbasis_data, freq_data, shot_data = self._measurement_data(experiment_data.data)
-        basis_matrix = qst_basis_matrix(mbasis_data, fitter_basis)
+        basis_matrix = qst_basis_matrix(mbasis_data, meas_basis.matrix)
         prob_data = freq_data / shot_data
         num_qubits = len(mbasis_data[0])
 
@@ -75,7 +76,9 @@ class QSTAnalysis(BaseAnalysis):
 
         # Run fitter
         if method == "lstsq":
-            result = lstsq_tomography_fit(basis_matrix, prob_data, psd=psd, trace=trace, **kwargs)
+            result = scipy_lstsq_tomography_fit(
+                basis_matrix, prob_data, psd=psd, trace=trace, **kwargs
+            )
         elif method == "cvx":
             result = cvx_lstsq_tomography_fit(
                 basis_matrix, prob_data, psd=psd, trace=trace, **kwargs
