@@ -21,3 +21,4 @@ from .experiment_data import ExperimentData, AnalysisResult
 from . import composite
 from . import analysis
 from . import randomized_benchmarking
+from . import quantum_volume
