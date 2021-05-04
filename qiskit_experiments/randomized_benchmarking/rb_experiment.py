@@ -74,23 +74,6 @@ class RBExperiment(BaseExperiment):
             circuits += self._sample_circuits(self._lengths, seed=self._rng)
         return circuits
 
-    def transpiled_circuits(self, backend=None, **kwargs):
-        """Return a list of transpiled RB circuits.
-        Args:
-            backend (Backend): Optional, a backend object to use as the
-                               argument for the :func:`qiskit.transpile`
-                               function.
-            kwargs: kwarg options for the :func:`qiskit.transpile` function.
-        Returns:
-            List[QuantumCircuit]: A list of :class:`QuantumCircuit`s.
-        Raises:
-            QiskitError: if an initial layout is specified in the
-                         kwarg options for transpilation. The initial
-                         layout must be generated from the experiment.
-        """
-        circuits = super().transpiled_circuits(backend=backend, **kwargs)
-        return circuits
-
     def _sample_circuits(
         self, lengths: Iterable[int], seed: Optional[Union[int, Generator]] = None
     ):
