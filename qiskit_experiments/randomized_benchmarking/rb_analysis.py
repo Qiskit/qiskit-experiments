@@ -101,7 +101,8 @@ class RBAnalysis(BaseAnalysis):
     def _extract_data(self, experiment_data, **filters):
         """Extract the base data for the fitter from the experiment data.
         Args:
-            data: the experiment data to analyze
+            experiment_data (ExperimentData): the experiment data to analyze
+            filters: parameters for filtering the data
         Returns:
             tuple: ``(xdata, ydata, ydata_sigma)`` , where
                ``xdata`` is an array of unique x-values, ``ydata`` is an array of
@@ -115,7 +116,7 @@ class RBAnalysis(BaseAnalysis):
         ydata_var = np.zeros(size, dtype=float)
         for i, datum in enumerate(data):
             metadata = datum["metadata"]
-            xdata[i] = metadata["xdata"]
+            xdata[i] = metadata["xval"]
             ydata[i], ydata_var[i] = level2_probability(datum, metadata["ylabel"])
 
         ydata_sigma = np.sqrt(ydata_var)
