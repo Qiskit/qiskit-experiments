@@ -20,7 +20,7 @@ import numpy as np
 from qiskit.providers import BaseBackend
 from qiskit.providers.models import QasmBackendConfiguration
 from qiskit.result import Result
-from qiskit_experiments import ExperimentData
+from qiskit.providers.experiment import ExperimentDataV1, ResultQuality
 from qiskit_experiments.composite import ParallelExperiment
 from qiskit_experiments.characterization import T1Experiment, T1Analysis
 
@@ -179,8 +179,8 @@ class TestT1(unittest.TestCase):
             shots=10000,
         ).analysis_result(0)
 
-        self.assertEqual(res["quality"], "computer_good")
-        self.assertAlmostEqual(res["value"], t1, delta=3)
+        self.assertEqual(res.quality, ResultQuality.GOOD)
+        self.assertAlmostEqual(res.data()["value"], t1, delta=3)
 
     def test_t1_parallel(self):
         """
@@ -208,26 +208,41 @@ class TestT1(unittest.TestCase):
         Test T1Analysis
         """
 
-        data = ExperimentData(None)
-        numbers = [750, 1800, 2750, 3550, 4250, 4850, 5450, 5900, 6400, 6800, 7000, 7350, 7700]
+        backend_res = {
+            "backend_name": "T1 backend",
+            "backend_version": "0",
+            "qobj_id": 0,
+            "job_id": 0,
+            "success": True,
+            "results": [],
+        }
 
+        shots = 10000
+        numbers = [750, 1800, 2750, 3550, 4250, 4850, 5450, 5900, 6400, 6800, 7000, 7350, 7700]
         for i, count0 in enumerate(numbers):
-            data._data.append(
+            backend_res["results"].append(
                 {
-                    "counts": {"0": count0, "1": 10000 - count0},
-                    "metadata": {
-                        "xval": 3 * i + 1,
-                        "experiment_type": "T1Experiment",
-                        "qubit": 0,
-                        "unit": "ns",
-                        "dt_factor_in_sec": None,
+                    "success": True,
+                    "shots": shots,
+                    "data": {"counts": {"0": count0, "1": shots - count0}},
+                    "header": {
+                        "metadata": {
+                            "xval": 3 * i + 1,
+                            "experiment_type": "T1Experiment",
+                            "qubit": 0,
+                            "unit": "ns",
+                            "dt_factor_in_sec": None,
+                        }
                     },
                 }
             )
 
+        data = ExperimentDataV1(None, "T1Experiment")
+        data.add_data(Result.from_dict(backend_res))
+
         res = T1Analysis()._run_analysis(data)[0]
-        self.assertEqual(res["quality"], "computer_good")
-        self.assertAlmostEqual(res["value"], 25e-9, delta=3)
+        self.assertEqual(res.quality, ResultQuality.GOOD)
+        self.assertAlmostEqual(res.data()["value"], 25e-9, delta=3)
 
     def test_t1_metadata(self):
         """
@@ -256,24 +271,39 @@ class TestT1(unittest.TestCase):
         A test where the fit's quality will be low
         """
 
-        data = ExperimentData(None)
+        backend_res = {
+            "backend_name": "T1 backend",
+            "backend_version": "0",
+            "qobj_id": 0,
+            "job_id": 0,
+            "success": True,
+            "results": [],
+        }
 
+        shots = 20
         for i in range(10):
-            data._data.append(
+            backend_res["results"].append(
                 {
-                    "counts": {"0": 10, "1": 10},
-                    "metadata": {
-                        "xval": i,
-                        "experiment_type": "T1Experiment",
-                        "qubit": 0,
-                        "unit": "ns",
-                        "dt_factor_in_sec": None,
+                    "success": True,
+                    "shots": shots,
+                    "data": {"counts": {"0": 10, "1": shots - 10}},
+                    "header": {
+                        "metadata": {
+                            "xval": i,
+                            "experiment_type": "T1Experiment",
+                            "qubit": 0,
+                            "unit": "ns",
+                            "dt_factor_in_sec": None,
+                        }
                     },
                 }
             )
 
+        data = ExperimentDataV1(None, "T1Experiment")
+        data.add_data(Result.from_dict(backend_res))
+
         res = T1Analysis()._run_analysis(data)[0]
-        self.assertEqual(res["quality"], "computer_bad")
+        self.assertEqual(res.quality, ResultQuality.BAD)
 
 
 if __name__ == "__main__":

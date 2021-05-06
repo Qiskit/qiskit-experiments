@@ -21,9 +21,10 @@ from qiskit.utils import apply_prefix
 
 from qiskit_experiments.base_experiment import BaseExperiment
 from qiskit_experiments.base_analysis import BaseAnalysis
+from qiskit.providers.experiment import AnalysisResultV1
+from qiskit.providers.experiment.device_component import Qubit
 from qiskit_experiments.analysis.curve_fitting import process_curve_data, curve_fit
 from qiskit_experiments.analysis.data_processing import level2_probability
-from qiskit_experiments import AnalysisResult
 
 
 class T1Analysis(BaseAnalysis):
@@ -40,12 +41,12 @@ class T1Analysis(BaseAnalysis):
         amplitude_bounds=None,
         offset_bounds=None,
         **kwargs,
-    ) -> Tuple[AnalysisResult, None]:
+    ) -> Tuple[AnalysisResultV1, None]:
         """
         Calculate T1
 
         Args:
-            experiment_data (ExperimentData): the experiment data to analyze
+            experiment_data (ExperimentDataV1): the experiment data to analyze
             t1_guess (float): Optional, an initial guess of T1
             amplitude_guess (float): Optional, an initial guess of the coefficient of the exponent
             offset_guess (float): Optional, an initial guess of the offset
@@ -58,13 +59,14 @@ class T1Analysis(BaseAnalysis):
             The analysis result with the estimated T1
         """
 
-        unit = experiment_data._data[0]["metadata"]["unit"]
-        conversion_factor = experiment_data._data[0]["metadata"].get("dt_factor", None)
+        unit = experiment_data.data(0)["metadata"]["unit"]
+        conversion_factor = experiment_data.data(0)["metadata"].get("dt_factor", None)
+
         if conversion_factor is None:
             conversion_factor = 1 if unit == "s" else apply_prefix(1, unit)
 
         xdata, ydata, sigma = process_curve_data(
-            experiment_data._data, lambda datum: level2_probability(datum, "1")
+            experiment_data.data(), lambda datum: level2_probability(datum, "1")
         )
         xdata *= conversion_factor
 
@@ -95,22 +97,29 @@ class T1Analysis(BaseAnalysis):
             ),
         )
 
-        analysis_result = AnalysisResult(
-            {
-                "value": fit_result["popt"][1],
-                "stderr": fit_result["popt_err"][1],
-                "unit": "s",
-                "label": "T1",
-                "fit": fit_result,
-                "quality": self._fit_quality(
-                    fit_result["popt"], fit_result["popt_err"], fit_result["reduced_chisq"]
-                ),
-            }
-        )
+        result_data = {
+            "value": fit_result["popt"][1],
+            "stderr": fit_result["popt_err"][1],
+            "unit": "s",
+            "label": "T1",
+            "fit": fit_result,
+            "quality": self._fit_quality(
+                fit_result["popt"], fit_result["popt_err"], fit_result["reduced_chisq"]
+            ),
+        }
 
-        analysis_result["fit"]["circuit_unit"] = unit
+        result_data["fit"]["circuit_unit"] = unit
         if unit == "dt":
-            analysis_result["fit"]["dt"] = conversion_factor
+            result_data["fit"]["dt"] = conversion_factor
+
+        analysis_result = AnalysisResultV1(
+            result_data,
+            "T1",
+            [Qubit(experiment_data.data(0)["metadata"]["qubit"])],
+            experiment_data.id,
+            quality=result_data["quality"],
+            verified=True,
+        )
 
         return analysis_result, None
 
@@ -125,9 +134,9 @@ class T1Analysis(BaseAnalysis):
             and (fit_err[1] is None or fit_err[1] < fit_out[1])
             and (fit_err[2] is None or fit_err[2] < 0.1)
         ):
-            return "computer_good"
+            return "good"
         else:
-            return "computer_bad"
+            return "bad"
 
 
 class T1Experiment(BaseExperiment):
