@@ -111,10 +111,10 @@ class DataProcessorTest(QiskitTestCase):
         """Check that a DataProcessor without steps does nothing."""
         data_processor = DataProcessor("counts")
 
-        datum = data_processor(self.exp_data_lvl2.data[0])
+        datum = data_processor(self.exp_data_lvl2.data(0))
         self.assertEqual(datum, {"00": 4, "10": 6})
 
-        datum, history = data_processor.call_with_history(self.exp_data_lvl2.data[0])
+        datum, history = data_processor.call_with_history(self.exp_data_lvl2.data(0))
         self.assertEqual(datum, {"00": 4, "10": 6})
         self.assertEqual(history, [])
 
@@ -125,7 +125,7 @@ class DataProcessorTest(QiskitTestCase):
         exp_data = ExperimentData(FakeExperiment())
         exp_data.add_data(self.result_lvl1)
 
-        new_data = processor(exp_data.data[0])
+        new_data = processor(exp_data.data(0))
 
         expected_old = {
             "memory": [
@@ -138,13 +138,13 @@ class DataProcessorTest(QiskitTestCase):
 
         expected_new = np.array([[1103.26, 2959.012], [442.17, -5279.41], [3016.514, -3404.7560]])
 
-        self.assertEqual(exp_data.data[0], expected_old)
+        self.assertEqual(exp_data.data(0), expected_old)
         self.assertTrue(np.allclose(new_data, expected_new))
 
         # Test that we can call with history.
-        new_data, history = processor.call_with_history(exp_data.data[0])
+        new_data, history = processor.call_with_history(exp_data.data(0))
 
-        self.assertEqual(exp_data.data[0], expected_old)
+        self.assertEqual(exp_data.data(0), expected_old)
         self.assertTrue(np.allclose(new_data, expected_new))
 
         self.assertEqual(history[0][0], "ToReal")
@@ -158,7 +158,7 @@ class DataProcessorTest(QiskitTestCase):
         exp_data = ExperimentData(FakeExperiment())
         exp_data.add_data(self.result_lvl1)
 
-        new_data = processor(exp_data.data[0])
+        new_data = processor(exp_data.data(0))
 
         expected_old = {
             "memory": [
@@ -177,12 +177,12 @@ class DataProcessorTest(QiskitTestCase):
             ]
         )
 
-        self.assertEqual(exp_data.data[0], expected_old)
+        self.assertEqual(exp_data.data(0), expected_old)
         self.assertTrue(np.allclose(new_data, expected_new))
 
         # Test that we can call with history.
-        new_data, history = processor.call_with_history(exp_data.data[0])
-        self.assertEqual(exp_data.data[0], expected_old)
+        new_data, history = processor.call_with_history(exp_data.data(0))
+        self.assertEqual(exp_data.data(0), expected_old)
         self.assertTrue(np.allclose(new_data, expected_new))
 
         self.assertEqual(history[0][0], "ToImag")
@@ -194,7 +194,7 @@ class DataProcessorTest(QiskitTestCase):
         processor = DataProcessor("counts")
         processor.append(Probability("00"))
 
-        new_data = processor(self.exp_data_lvl2.data[0])
+        new_data = processor(self.exp_data_lvl2.data(0))
 
         self.assertEqual(new_data[0], 0.4)
         self.assertEqual(new_data[1], 0.4 * (1 - 0.4) / 10)
