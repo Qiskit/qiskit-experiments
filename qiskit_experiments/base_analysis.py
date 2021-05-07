@@ -15,18 +15,30 @@ Base analysis class.
 
 from abc import ABC, abstractmethod
 
+from qiskit.providers.options import Options
 from qiskit.exceptions import QiskitError
 from .experiment_data import ExperimentData, AnalysisResult
 
 
 class BaseAnalysis(ABC):
-    """Base Analysis class for analyzing Experiment data."""
+    """Base Analysis class for analyzing Experiment data.
+
+    When designing Analysis subclasses default values for any kwarg
+    analysis options of the `run` method should be set by overriding
+    the `_default_options` class method. When calling `run` these
+    default values will combined with all other option kwargs in the
+    run method and passed to the `_run_analysis` function.
+    """
 
     # Expected experiment data container for analysis
     __experiment_data__ = ExperimentData
 
+    @classmethod
+    def _default_options(cls):
+        return Options()
+
     def run(self, experiment_data, save=True, return_figures=False, **options):
-        """Run analysis and update stored ExperimentData with analysis result.
+        """Run analysis and update ExperimentData with analysis result.
 
         Args:
             experiment_data (ExperimentData): the experiment data to analyze.
@@ -35,7 +47,8 @@ class BaseAnalysis(ABC):
             return_figures (bool): if true return a pair of
                                    ``(analysis_results, figures)``,
                                     otherwise return only analysis_results.
-            options: kwarg options for analysis function.
+            options: additional analysis options. See class documentation for
+                     supported options.
 
         Returns:
             AnalysisResult: the output of the analysis that produces a
@@ -55,12 +68,14 @@ class BaseAnalysis(ABC):
                 f"Invalid experiment data type, expected {self.__experiment_data__.__name__}"
                 f" but received {type(experiment_data).__name__}"
             )
-
-        # Wait for experiment job to finish
-        # experiment_data.block_for_result()
+        # Get analysis options
+        analysis_options = self._default_options()
+        analysis_options.update_options(**options)
+        analysis_options = analysis_options.__dict__
 
         # Run analysis
-        analysis_results, figures = self._run_analysis(experiment_data, **options)
+        analysis_results, figures = self._run_analysis(experiment_data, **analysis_options)
+
         # Save to experiment data
         if save:
             if isinstance(analysis_results, AnalysisResult):
@@ -81,7 +96,9 @@ class BaseAnalysis(ABC):
 
         Args:
             experiment_data (ExperimentData): the experiment data to analyze.
-            options: kwarg options for analysis function.
+            options: additional options for analysis. By default the fields and
+                     values in :meth:`options` are used and any provided values
+                     can override these.
 
         Returns:
             tuple: A pair ``(analysis_results, figures)`` where

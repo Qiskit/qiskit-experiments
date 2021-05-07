@@ -19,13 +19,19 @@ from numpy.random import Generator, default_rng
 
 from qiskit import QuantumCircuit
 from qiskit.quantum_info import Clifford, random_clifford
+from qiskit.providers.options import Options
 
 from qiskit_experiments.base_experiment import BaseExperiment
 from .rb_analysis import RBAnalysis
 
 
 class RBExperiment(BaseExperiment):
-    """RB Experiment class"""
+    """RB Experiment class.
+
+    Experiment Options:
+        lengths: A list of RB sequences lengths.
+        num_samples: number of samples to generate for each sequence length.
+    """
 
     # Analysis class for experiment
     __analysis_class__ = RBAnalysis
@@ -43,8 +49,7 @@ class RBExperiment(BaseExperiment):
             qubits: the number of qubits or list of
                     physical qubits for the experiment.
             lengths: A list of RB sequences lengths.
-            num_samples: number of samples to generate for each
-                         sequence length
+            num_samples: number of samples to generate for each sequence length.
             seed: Seed or generator object for random number
                   generation. If None default_rng will be used.
             full_sampling: If True all Cliffords are independently sampled for
@@ -52,14 +57,22 @@ class RBExperiment(BaseExperiment):
                            sequences are constructed by appending additional
                            Clifford samples to shorter sequences.
         """
+        # Initialize base experiment
+        super().__init__(qubits)
+
+        # Set configurable options
+        self.set_options(lengths=list(lengths), num_samples=num_samples)
+
+        # Set fixed options
+        self._full_sampling = full_sampling
         if not isinstance(seed, Generator):
             self._rng = default_rng(seed=seed)
         else:
             self._rng = seed
-        self._lengths = list(lengths)
-        self._num_samples = num_samples
-        self._full_sampling = full_sampling
-        super().__init__(qubits)
+
+    @classmethod
+    def _default_options(cls):
+        return Options(lengths=None, num_samples=None)
 
     # pylint: disable = arguments-differ
     def circuits(self, backend=None):
@@ -70,25 +83,8 @@ class RBExperiment(BaseExperiment):
             List[QuantumCircuit]: A list of :class:`QuantumCircuit`s.
         """
         circuits = []
-        for _ in range(self._num_samples):
-            circuits += self._sample_circuits(self._lengths, seed=self._rng)
-        return circuits
-
-    def transpiled_circuits(self, backend=None, **kwargs):
-        """Return a list of transpiled RB circuits.
-        Args:
-            backend (Backend): Optional, a backend object to use as the
-                               argument for the :func:`qiskit.transpile`
-                               function.
-            kwargs: kwarg options for the :func:`qiskit.transpile` function.
-        Returns:
-            List[QuantumCircuit]: A list of :class:`QuantumCircuit`s.
-        Raises:
-            QiskitError: if an initial layout is specified in the
-                         kwarg options for transpilation. The initial
-                         layout must be generated from the experiment.
-        """
-        circuits = super().transpiled_circuits(backend=backend, **kwargs)
+        for _ in range(self.options.num_samples):
+            circuits += self._sample_circuits(self.options.lengths, seed=self._rng)
         return circuits
 
     def _sample_circuits(
