@@ -1,0 +1,8 @@
+---
+upgrade:
+  - |
+    The default sampler class used by :meth:`.BaseExperiment.run` to run jobs
+    was updated from the default ``Sampler`` class in ``qiskit_ibm_runtime`` to
+    the ``Executor`` based sampler. Qiskit Experiments will fall back to
+    ``qiskit_ibm_runtime.SamplerV2`` on versions of ``qiskit_ibm_runtime`` that
+    do not include the executor sampler.
