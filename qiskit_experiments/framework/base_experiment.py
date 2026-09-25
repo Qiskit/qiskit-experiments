@@ -384,7 +384,16 @@ class BaseExperiment(ABC, StoreInitArgs):
         if not self._backend_run:
             if sampler is None:
                 # instantiate a sampler from the backend
-                from qiskit_ibm_runtime import SamplerV2
+                try:
+                    # Use the new executor sampler if available
+                    from qiskit_ibm_runtime.executor_sampler import SamplerV2
+                except ImportError:
+                    # Fall back to the top level sampler. Once the top level
+                    # import is switched to the executor this import can
+                    # replace this try/except block. The current arrangement
+                    # avoids a deprecation warning on SamplerV2 about the
+                    # executor transition.
+                    from qiskit_ibm_runtime import SamplerV2
 
                 sampler = SamplerV2(self.backend)
 
