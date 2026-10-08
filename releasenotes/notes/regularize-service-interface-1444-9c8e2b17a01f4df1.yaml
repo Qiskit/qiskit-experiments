@@ -1,0 +1,7 @@
+---
+fixes:
+  - |
+    Added :meth:`.ExperimentService.experiment_has_file` to the
+    :class:`~qiskit_experiments.framework.ExperimentService` protocol.
+    This method was already implemented by :class:`~qiskit_experiments.database_service.LocalExperimentService`
+    and invoked by :meth:`.ExperimentData.load`, but was missing from the protocol definition.

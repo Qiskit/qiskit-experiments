@@ -346,6 +346,18 @@ class ExperimentService(Protocol):
         """
         raise NotImplementedError
 
+    def experiment_has_file(self, experiment_id: str, filename: str) -> bool:
+        """Check if an experiment has a specific file.
+
+        Args:
+            experiment_id: Experiment ID
+            filename: Name of the file to check
+
+        Returns:
+            True if the file exists, False otherwise
+        """
+        raise NotImplementedError
+
     def file_upload(
         self,
         experiment_id: str,
