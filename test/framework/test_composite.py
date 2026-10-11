@@ -15,6 +15,7 @@
 import copy
 import uuid
 import warnings
+from unittest import mock
 
 from test.fake_experiment import FakeExperiment, FakeAnalysis
 from test.base import QiskitExperimentsTestCase
@@ -23,7 +24,7 @@ from ddt import ddt, data
 from qiskit import QuantumCircuit
 from qiskit.result import Result
 
-from qiskit_aer import AerSimulator, noise
+from qiskit_aer import AerSimulator
 
 import qiskit_experiments.framework.json as qe_json
 from qiskit_experiments.database_service import LocalExperimentService
@@ -987,6 +988,16 @@ class TestBatchTranspileOptions(QiskitExperimentsTestCase):
         circs = self.batch2._transpiled_circuits()
         numbers_of_gates = [len(circ.data) for circ in circs]
         self.assertEqual(set(numbers_of_gates), set([7, 8, 9]))
+        two_qubit_operation_qubits = [
+            {
+                circ.find_bit(qubit).index
+                for instruction in circ.data
+                if instruction.operation.num_qubits == 2
+                for qubit in instruction.qubits
+            }
+            for circ in circs
+        ]
+        self.assertEqual(two_qubit_operation_qubits, [{0, 1, 3}, {0, 1, 2, 3}, {0, 3}])
 
     def test_batch_transpile_options_integrated(self):
         """
@@ -995,39 +1006,22 @@ class TestBatchTranspileOptions(QiskitExperimentsTestCase):
         the entire flow of `BaseExperiment.run`.
         """
         backend = AerSimulator(basis_gates=["h", "cx", "swap"])
-        noise_model = noise.NoiseModel()
-        noise_model.add_all_qubit_quantum_error(noise.depolarizing_error(0.5, 2), ["cx", "swap"])
 
-        with warnings.catch_warnings():
-            # Ignore warning about transpiling with a coupling_map and a
-            # backend. We are specifically testing using different coupling
-            # maps on different subexperiments.
-            warnings.filterwarnings(
-                "ignore", message=".*coupling_map.*backend.*", category=UserWarning
-            )
-            expdata = self.batch2.run(backend, noise_model=noise_model, shots=1000, memory=True)
+        with mock.patch.object(
+            self.batch2,
+            "_transpiled_circuits",
+            wraps=self.batch2._transpiled_circuits,
+        ) as transpiled_circuits:
+            with warnings.catch_warnings():
+                # Ignore warning about transpiling with a coupling_map and a
+                # backend. We are specifically testing using different coupling
+                # maps on different subexperiments.
+                warnings.filterwarnings(
+                    "ignore", message=".*coupling_map.*backend.*", category=UserWarning
+                )
+                expdata = self.batch2.run(backend, shots=1)
         self.assertExperimentDone(expdata)
-
-        self.assertEqual(
-            expdata.child_data(0).analysis_results("non-zero counts", dataframe=True).iloc[0].value,
-            8,
-        )
-        self.assertEqual(
-            expdata.child_data(1)
-            .child_data(0)
-            .analysis_results("non-zero counts", dataframe=True)
-            .iloc[0]
-            .value,
-            16,
-        )
-        self.assertEqual(
-            expdata.child_data(1)
-            .child_data(1)
-            .analysis_results("non-zero counts", dataframe=True)
-            .iloc[0]
-            .value,
-            4,
-        )
+        transpiled_circuits.assert_called_once_with()
 
     def test_separate_jobs(self):
         """Test the separate_job experiment option"""
