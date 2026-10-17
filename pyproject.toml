@@ -9,7 +9,7 @@ description = "Software for developing quantum computing programs"
 dependencies = [
     "numpy>=1.17",
     "scipy>=1.4",
-    "qiskit>=1.3",
+    "qiskit>=1.3,<3",
     "qiskit-ibm-runtime>=0.34.0",
     "matplotlib>=3.4",
     "uncertainties",
